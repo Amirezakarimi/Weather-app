@@ -1,4 +1,3 @@
-// تنظیمات API جایگزین - WeatherAPI.com (رایگان)
 const API_KEY = '4b9b4d4c083e456b8e0170844250508'; // کلید WeatherAPI.com
 const BASE_URL = 'https://api.weatherapi.com/v1';
 
