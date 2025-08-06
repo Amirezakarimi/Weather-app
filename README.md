@@ -1,5 +1,7 @@
 # اپلیکیشن هواشناسی
 
+دمو پروژه: https://amirezakarimi.github.io/Weather-app/
+
 یک اپلیکیشن هواشناسی ریسپانسیو با استفاده از HTML، CSS و JavaScript که اطلاعات آب‌وهوا را از API  WeatherAPI.com دریافت می‌کند.
 
 ## ویژگی‌ها
