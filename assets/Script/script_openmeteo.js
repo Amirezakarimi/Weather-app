@@ -315,3 +315,100 @@ setInterval(() => {
         searchWeather();
     }
 }, 30 * 60 * 1000); 
+
+// متغیر نقشه و مارکر
+let map, marker;
+
+// دریافت مختصات با نام شهر (بازاستفاده از OpenMeteo Geocoding)
+async function getCityLatLng(city) {
+	const url = `${GEO_URL}/search?name=${encodeURIComponent(city)}&count=1`;
+	const res = await fetch(url);
+	const data = await res.json();
+	if (data.results && data.results.length > 0) {
+		return {
+			lat: data.results[0].latitude,
+			lng: data.results[0].longitude
+		};
+	}
+	return null;
+}
+
+// نمایش نقشه برای شهر
+async function showMapForCity(city) {
+	try {
+		const coords = await getCityLatLng(city);
+		if (!coords) return;
+		if (map) {
+			map.setView([coords.lat, coords.lng], 10);
+			if (marker) {
+				marker.setLatLng([coords.lat, coords.lng]);
+			} else {
+				marker = L.marker([coords.lat, coords.lng]).addTo(map);
+			}
+		} else {
+			map = L.map('map').setView([coords.lat, coords.lng], 10);
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '© OpenStreetMap contributors'
+			}).addTo(map);
+			marker = L.marker([coords.lat, coords.lng]).addTo(map);
+		}
+	} catch (err) {
+		console.error('خطا در نمایش نقشه:', err);
+	}
+}
+
+// قلاب پس از نمایش اطلاعات برای نشان دادن نقشه
+const originalDisplayCurrentWeather = displayCurrentWeather;
+displayCurrentWeather = function(data, city) {
+	originalDisplayCurrentWeather(data, city);
+	const effectiveCity = city || document.getElementById('cityName').textContent;
+	showMapForCity(effectiveCity);
+};
+
+// همچنین هنگام دریافت موقعیت جغرافیایی مستقیم (lat/lng)
+async function showMapForLatLng(lat, lng) {
+	try {
+		if (map) {
+			map.setView([lat, lng], 10);
+			if (marker) {
+				marker.setLatLng([lat, lng]);
+			} else {
+				marker = L.marker([lat, lng]).addTo(map);
+			}
+		} else {
+			map = L.map('map').setView([lat, lng], 10);
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '© OpenStreetMap contributors'
+			}).addTo(map);
+			marker = L.marker([lat, lng]).addTo(map);
+		}
+	} catch (err) {
+		console.error('خطا در نمایش نقشه با مختصات:', err);
+	}
+}
+
+// در مسیر موقعیت‌یابی، بعد از دریافت داده‌ها نقشه را هم بروز کن
+const originalGetLocationWeather = getLocationWeather;
+getLocationWeather = function() {
+	if (!navigator.geolocation) return originalGetLocationWeather();
+	navigator.geolocation.getCurrentPosition(async (position) => {
+		const { latitude, longitude } = position.coords;
+		try {
+			const weatherData = await getWeatherData(latitude, longitude);
+			// دریافت نام شهر از سرویس جئوکدینگ
+			const geoResponse = await fetch(`${GEO_URL}/search?latitude=${latitude}&longitude=${longitude}&count=1`);
+			const geoData = await geoResponse.json();
+			const name = (geoData.results && geoData.results.length > 0) ? geoData.results[0].name : 'موقعیت شما';
+			cityInput.value = name;
+			displayCurrentWeather(weatherData, name);
+			displayForecast(weatherData);
+			weatherInfo.style.display = 'block';
+			error.style.display = 'none';
+			await showMapForLatLng(latitude, longitude);
+		} catch (error) {
+			console.error('خطا در دریافت موقعیت:', error);
+		}
+	}, (error) => {
+		console.error('خطا در دسترسی به موقعیت:', error);
+	});
+}; 
